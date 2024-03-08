@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Health Prediction Result</title>
+    <link rel="stylesheet" href="/static/result.css">
+</head>
+<body>
+    <h1>Health Prediction Result</h1>
+    <p>KNN Model Prediction: {{ result.knn_model_prediction }}</p>
+    <p>Naive Bayes Prediction: {{ result.naive_bayes_prediction }}</p>
+    <p>SVM Model Prediction: {{ result.svm_model_prediction }}</p>
+    <p>Final Prediction: {{ result.final_prediction }}</p>
+    <form action="{{ url_for('report') }}">
+        <button type="submit">View Complete Reports and Confusion Matrix</button>
+    </form>
+</body>
+</html>
