@@ -1,4 +1,7 @@
 from flask import Flask, render_template, request
+from flask import send_file
+from werkzeug.utils import secure_filename
+import os
 import pandas as pd
 import numpy as np
 from statistics import mode
@@ -83,12 +86,133 @@ def index():
     return render_template('index.html')
 
 
+# ... (previous code)
+
 @app.route('/result', methods=['POST'])
 def result():
     if request.method == 'POST':
         user_input = request.form['symptoms']
         result = predict_disease(user_input)
-        return render_template('result.html', result=result)
+
+        # Extract form data for passing to view_report page
+        form_data = {
+            'title': request.form.get('title', ''),
+            'first_name': request.form.get('first_name', ''),
+            'last_name': request.form.get('last_name', ''),
+            'age': request.form.get('age', ''),
+            'gender': request.form.get('gender', ''),
+            'symptoms': user_input,
+        }
+
+        # Render the result page with the result and a link to the view_report page
+        return render_template('result.html', result=result, **form_data)
+
+    # If the request method is not POST, render an error message
+    return render_template('result.html', result="Invalid request method.")
+
+@app.route('/download_report')
+def download_report():
+    # Get the report content and patient's first name from the query parameters
+    report_content = request.args.get('report_content', '')
+    first_name = request.args.get('first_name', 'Patient')
+
+    # Sanitize the first name to create a safe file name
+    safe_first_name = secure_filename(first_name)
+
+    # Customize the file name with the sanitized patient's first name
+    file_name = f"{safe_first_name}_medical_report.txt"
+    temp_file_path = f'static/{file_name}'
+
+    # Save the report content to a temporary file
+    with open(temp_file_path, 'w') as file:
+        file.write(report_content)
+
+    # Ensure the file is closed before sending it for download
+    file.close()
+
+    # Send the file as an attachment for download
+    return send_file(temp_file_path, as_attachment=True, download_name=file_name)
+
+
+
+def generate_medical_report(patient_details, predictions):
+    title = patient_details.get('title', '')
+    full_name = f"{title} {patient_details['first_name']} {patient_details['last_name']}\n"
+    
+    report_content = f"Full Name: {full_name}"
+    report_content += f"Age: {patient_details['age']}\n"
+    report_content += f"Gender: {patient_details['gender']}\n"
+    
+    # Add symptoms to the report
+    symptoms = patient_details.get('symptoms', '')
+    report_content += f"Symptoms: {symptoms}\n"
+
+    # Add a line break before the "Prediction Details" section
+    report_content += "\nPrediction Details:\n"
+    
+    report_content += f"KNN Model Prediction: {predictions['knn_model_prediction']}\n"
+    report_content += f"Naive Bayes Prediction: {predictions['naive_bayes_prediction']}\n"
+    report_content += f"SVM Model Prediction: {predictions['svm_model_prediction']}\n"
+    report_content += f"Final Prediction: {predictions['final_prediction']}\n"
+
+    # Add more information to the report as needed
+
+    # For debugging, print the report content
+    print("Generated Medical Report Content:")
+    print(report_content)
+
+    return report_content
+
+# ... (rest of the code)
+
+# ... (rest of the code)
+
+# ... (previous routes and setup)
+
+# ... (previous code)
+
+# ... (previous code)
+
+# ... (previous code)
+
+@app.route('/view_report', methods=['POST'])
+def view_report():
+    if request.method == 'POST':
+        # Use the form data to generate the medical report
+        title = request.form['title']
+        first_name = request.form['first_name']
+        last_name = request.form['last_name']
+        age = request.form['age']
+        gender = request.form['gender']
+        symptoms = request.form['symptoms']
+
+        # Perform health prediction or other processing here
+        predictions = predict_disease(symptoms)
+
+        report_content = generate_medical_report({
+            'title': title,
+            'first_name': first_name,
+            'last_name': last_name,
+            'age': age,
+            'gender': gender,
+            'symptoms': symptoms,
+        }, predictions)
+
+        # Render the view_report page with the medical report content
+        return render_template('view_report.html', report_content=report_content)
+
+    # If the request method is not POST, render an error message
+    return render_template('view_report.html', report_content="Invalid request method.")
+
+# ... (rest of the code)
+
+
+# ... (rest of the code)
+
+
+
+
+
     
 
 
@@ -124,6 +248,8 @@ def report():
     generate_confusion_matrix(y_test, preds_svm, 'SVM')
     generate_confusion_matrix(y_test, final_preds, 'Combined_Model')
 
+    # Other report generation code
+    # ...
 
     return render_template('report.html')
 
